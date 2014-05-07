@@ -6,10 +6,72 @@
   <artifactId>disco</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-
-  <name>disco</name>
-  <url>http://maven.apache.org</url>
-
+  <name>Service discovery through Zookeeper for Java</name>
+  <url>https://github.com/librato/disco-java</url>
+  <licenses>
+    <license>
+      <name>BSD License</name>
+      <url>https://github.com/librato/disco-java/blob/master/LICENSE</url>
+    </license>
+  </licenses>
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+  <scm>
+    <url>https://github.com/librato/disco-java/</url>
+    <connection>scm:git:git://github.com/librato/disco-java</connection>
+    <developerConnection>scm:git:git@github.com:librato/disco-java</developerConnection>
+  </scm>
+  <developers>
+    <developer>
+      <id>jaredkuolt</id>
+      <name>Jared Kuolt</name>
+      <email>jared.kuolt@gmail.com</email>
+    </developer>
+  </developers>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <curator.version>2.4.2</curator.version>
