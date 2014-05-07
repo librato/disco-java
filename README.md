@@ -46,3 +46,8 @@ the node will be removed from Zookeeper.
 ```java
 service.stop();
 ```
+
+## Testing
+
+Run tests with `mvn test`. **Note**: tests assume you have Zookeeper running on
+`localhost:2181`
