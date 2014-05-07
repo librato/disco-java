@@ -40,8 +40,8 @@ service.start();
 ```
 
 As long as the service is running, this configuration will be associated with the
-Zookeeper node `/services/myservice/nodes/foo:4321`. Upon stopping the service,
-the node will be removed from Zookeeper.
+Zookeeper node `/services/myservice/nodes/hostname:4321`. Upon stopping the
+service, the node will be removed from Zookeeper.
 
 ```java
 service.stop();
