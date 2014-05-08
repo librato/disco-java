@@ -21,18 +21,17 @@ public class DiscoClientTest {
 
     @Test
     public void testBasicListener() throws Exception {
-        final String serviceName = "alerts";
+        final String serviceName = "myservice";
         framework = CuratorFrameworkFactory.builder()
                 .connectionTimeoutMs(1000)
                 .connectString("localhost:2181")
                 .retryPolicy(new ExponentialBackoffRetry(1000, 5))
                 .build();
         framework.start();
-        final SelectorStrategy selector = new RoundRobinSelectorStrategy();
-        client = new DiscoClient(framework, serviceName, selector);
-        client.start();
+        final DiscoClientFactory factory = new DiscoClientFactory(framework);
+        client = factory.buildClient("myservice");
 
-        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/alerts/nodes/hello:1231");
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello:1231");
         // Give it a bit to propagate
         Thread.sleep(100);
         assertEquals("hello:1231", client.getServiceHost().get());
