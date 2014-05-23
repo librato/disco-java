@@ -1,6 +1,8 @@
 package com.librato.disco;
 
+import com.google.common.base.Preconditions;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +26,7 @@ public class DiscoService {
     }
 
     public void start() throws Exception {
-        framework.start();
-
+        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         // Ensure the parent paths exist persistently
         while (framework.checkExists().forPath(baseNode) == null) {
             log.info("Creating base node");

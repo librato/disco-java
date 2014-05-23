@@ -35,7 +35,6 @@ public class DiscoClient {
     private final AtomicBoolean started = new AtomicBoolean(false);
 
     public DiscoClient(CuratorFramework framework, String serviceName, SelectorStrategy selector) {
-        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         this.framework = framework;
         this.serviceName = serviceName;
         this.selector = selector;
@@ -56,6 +55,7 @@ public class DiscoClient {
     }
 
     public void start() throws Exception {
+        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         Preconditions.checkArgument(started.compareAndSet(false, true));
         if (framework.checkExists().forPath(serviceNode) == null) {
             framework.create().creatingParentsIfNeeded().forPath(serviceNode);
