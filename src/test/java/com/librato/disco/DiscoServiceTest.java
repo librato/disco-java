@@ -3,6 +3,7 @@ package com.librato.disco;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.ACLBackgroundPathAndBytesable;
 import org.apache.curator.framework.api.CreateBuilder;
+import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.api.ExistsBuilder;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.zookeeper.CreateMode;
@@ -32,8 +33,10 @@ public class DiscoServiceTest {
     @Test
     public void testStop() throws Exception {
         CuratorFramework framework = mock(CuratorFramework.class);
+        DeleteBuilder deleteBuilder = mock(DeleteBuilder.class);
+        when(framework.delete()).thenReturn(deleteBuilder);
         DiscoService manager = new DiscoService(framework, "myservice", "foo", 1234);
         manager.stop();
-        verify(framework).close();
+        verify(deleteBuilder).forPath("/services/myservice/nodes/foo:1234");
     }
 }

@@ -17,35 +17,38 @@ public class DiscoService {
     final CuratorFramework framework;
     final String nodeName;
     final int port;
+    final String node;
 
     public DiscoService(CuratorFramework framework, String serviceName, String nodeName, int port) {
         this.framework = framework;
         this.baseNode = String.format(baseNodeTemplate, serviceName);
         this.nodeName = nodeName;
         this.port = port;
+
+        // Register ephemeral node as representation of this service's nodename and port
+        // such as /services/myservice/nodes/192.168.1.1:8000
+        this.node = baseNode + "/" + nodeName + ":" + port;
     }
 
     public void start() throws Exception {
         Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         // Ensure the parent paths exist persistently
         while (framework.checkExists().forPath(baseNode) == null) {
-            log.info("Creating base node");
+            log.info("Creating base node {}", baseNode);
             framework.create()
                     .creatingParentsIfNeeded()
                     .withMode(CreateMode.PERSISTENT)
                     .forPath(baseNode);
         }
 
-        // Register ephemeral node as representation of this service's nodename and port
         // TODO: Add payload capability
-        final String node = baseNode + "/" + nodeName + ":" + port;
         log.info("Registering with ZK as node {}", node);
         framework.create()
                 .withMode(CreateMode.EPHEMERAL)
                 .forPath(node);
     }
 
-    public void stop() {
-        framework.close();
+    public void stop() throws Exception {
+        framework.delete().forPath(node);
     }
 }
