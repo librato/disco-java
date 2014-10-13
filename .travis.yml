@@ -9,6 +9,9 @@ cache:
   directories:
     - $HOME/.m2
 
+script:
+  - mvn test
+
 notifications:
   email:
     on_failure: change
