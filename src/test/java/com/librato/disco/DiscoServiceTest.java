@@ -6,6 +6,8 @@ import org.apache.curator.framework.api.CreateBuilder;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.api.ExistsBuilder;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.listen.Listenable;
+import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 import org.junit.Test;
@@ -16,7 +18,7 @@ public class DiscoServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testStart() throws Exception {
-        CuratorFramework framework = mock(CuratorFramework.class);
+        CuratorFramework framework = mockFramework();
         ExistsBuilder ceBuilder = mock(ExistsBuilder.class);
         CreateBuilder createBuilder = mock(CreateBuilder.class);
         when(framework.checkExists()).thenReturn(ceBuilder);
@@ -32,11 +34,23 @@ public class DiscoServiceTest {
 
     @Test
     public void testStop() throws Exception {
-        CuratorFramework framework = mock(CuratorFramework.class);
+        String path = "/services/myservice/nodes/foo:1234";
+        CuratorFramework framework = mockFramework();
+        ExistsBuilder existsBuilder = mock(ExistsBuilder.class);
+        when(existsBuilder.forPath(path)).thenReturn(mock(Stat.class));
+        when(framework.checkExists()).thenReturn(existsBuilder);
         DeleteBuilder deleteBuilder = mock(DeleteBuilder.class);
         when(framework.delete()).thenReturn(deleteBuilder);
         DiscoService manager = new DiscoService(framework, "myservice", "foo", 1234);
         manager.stop();
-        verify(deleteBuilder).forPath("/services/myservice/nodes/foo:1234");
+        verify(deleteBuilder).forPath(path);
+    }
+
+    private CuratorFramework mockFramework() {
+        CuratorFramework framework = mock(CuratorFramework.class);
+
+        when(framework.getConnectionStateListenable()).thenReturn(mock(Listenable.class));
+
+        return framework;
     }
 }
