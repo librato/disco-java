@@ -1,0 +1,15 @@
+language: java
+jdk:
+  - oraclejdk8
+
+matrix:
+  fast_finish: true
+
+cache:
+  directories:
+    - $HOME/.m2
+
+notifications:
+  email:
+    on_failure: change
+    on_success: never
