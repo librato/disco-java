@@ -9,8 +9,10 @@ cache:
   directories:
     - $HOME/.m2
 
-script:
-  - mvn test
+before_install:
+  - "echo 'gem: --no-ri --no-rdoc' > ~/.gemrc"
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq zookeeper zookeeperd
 
 notifications:
   email:
