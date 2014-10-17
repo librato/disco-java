@@ -3,7 +3,7 @@
 
   <groupId>com.librato.disco</groupId>
   <artifactId>disco</artifactId>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.0.5</version>
   <packaging>jar</packaging>
   <name>Service discovery through Zookeeper for Java</name>
   <url>https://github.com/librato/disco-java</url>
