@@ -104,6 +104,10 @@ public class DiscoClient {
         }
     }
 
+    public int numServiceHosts() {
+        return cache.getCurrentData().size();
+    }
+
     public boolean isStarted() {
         return started.get();
     }
