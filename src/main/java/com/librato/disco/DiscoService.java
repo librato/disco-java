@@ -6,7 +6,6 @@ import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,21 +17,24 @@ public class DiscoService {
     private static final String baseNodeTemplate = "/services/%s/nodes";
     private final String baseNode;
     final CuratorFramework framework;
-    final String nodeName;
-    final int port;
-    final String node;
-    final ConnectionStateListener listener;
+    String nodeName;
+    int port;
+    String node;
+    ConnectionStateListener listener;
 
-    public DiscoService(CuratorFramework framework, String serviceName, String nodeName, int port) {
+    public DiscoService(CuratorFramework framework, String serviceName) {
         this.framework = framework;
         this.baseNode = String.format(baseNodeTemplate, serviceName);
+    }
+
+    public void start(String nodeName, int port) throws Exception {
+        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         this.nodeName = nodeName;
         this.port = port;
 
         // Register ephemeral node as representation of this service's nodename and port
         // such as /services/myservice/nodes/192.168.1.1:8000
         this.node = baseNode + "/" + nodeName + ":" + port;
-
         this.listener = new ConnectionStateListener() {
             @Override
             public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
@@ -50,10 +52,6 @@ public class DiscoService {
             }
         };
 
-    }
-
-    public void start() throws Exception {
-        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         // Ensure the parent paths exist persistently
         while (framework.checkExists().forPath(baseNode) == null) {
             log.info("Creating base node {}", baseNode);

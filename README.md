@@ -19,7 +19,7 @@ when a service is added or removed.
 CuratorFramework framework; // Initialize this
 SelectorStrategy selector = new RoundRobinSelectorStrategy();
 DiscoClient client = new DiscoClient(framework, serviceName, selector);
-client.start();
+client.start(host, port);
 
 Optional<String> serviceHost = client.getServiceHost();
 ```
@@ -37,8 +37,8 @@ client.stop();
 
 ```java
 CuratorFramework framework; // Initialize this
-DiscoService service = new DiscoService(framework, "myservice", "hostname", 4321);
-service.start();
+DiscoService service = new DiscoService(framework, "myservice");
+service.start("hostname", 4321);
 ```
 
 As long as the service is running, this configuration will be associated with the
