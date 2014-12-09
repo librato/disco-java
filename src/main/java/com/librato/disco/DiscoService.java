@@ -18,7 +18,7 @@ public class DiscoService {
     private static final Logger log = LoggerFactory.getLogger(DiscoService.class);
     private static final String baseNodeTemplate = "/services/%s/nodes";
     private final String baseNode;
-    CuratorFramework framework;
+    final CuratorFramework framework;
     String nodeName;
     int port;
     String node;
