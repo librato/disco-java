@@ -18,7 +18,7 @@ when a service is added or removed.
 ```java
 CuratorFramework framework; // Initialize this
 SelectorStrategy selector = new RoundRobinSelectorStrategy();
-DiscoClient client = new DiscoClient(framework, serviceName);
+DiscoClient client = new DiscoClient(framework, serviceName, selector);
 client.start(host, port);
 
 Optional<String> serviceHost = client.getServiceHost();
