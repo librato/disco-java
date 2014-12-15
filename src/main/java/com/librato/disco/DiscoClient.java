@@ -83,7 +83,7 @@ public class DiscoClient {
                 }
             }
         });
-        cache.start();
+        cache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
     }
 
     public void stop() throws IOException {
