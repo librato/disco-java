@@ -8,15 +8,15 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * TODO: Document
+ * This selector strategy attempts to backoff a node given its creation timestamp for a specified period, allowing
+ * a percentage through to the node (low effort on enforcing percentage)
  */
 public class BackoffSelectorStrategy implements SelectorStrategy {
     private static final Logger log = LoggerFactory.getLogger(BackoffSelectorStrategy.class);
     private final Random rand = new Random();
     private final SelectorStrategy base;
     private final int percentage;
-
-    private long threshold = 10000; // 10 seconds
+    private final long period; // millis
 
     public BackoffSelectorStrategy(long thresholdMillis, int percentage) {
         // NOTE: RandomSelectorStrategy is recommended as a base because otherwise the spillover to the next node
@@ -24,9 +24,9 @@ public class BackoffSelectorStrategy implements SelectorStrategy {
         this(new RandomSelectorStrategy(), thresholdMillis, percentage);
     }
 
-    public BackoffSelectorStrategy(SelectorStrategy base, long thresholdMillis, int percentage) {
+    public BackoffSelectorStrategy(SelectorStrategy base, long periodMillis, int percentage) {
         this.base = base;
-        this.threshold = thresholdMillis;
+        this.period = periodMillis;
         this.percentage = percentage;
     }
 
@@ -38,7 +38,7 @@ public class BackoffSelectorStrategy implements SelectorStrategy {
             cd = base.choose(children);
             final long now = System.currentTimeMillis();
             final long cdTime = cd.getStat().getCtime();
-            if (now - cdTime > threshold || rand.nextInt(100) <= percentage) {
+            if (now - cdTime > period || rand.nextInt(100) <= percentage) {
                 break;
             }
         }
