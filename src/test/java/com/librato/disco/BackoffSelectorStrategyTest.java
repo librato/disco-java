@@ -17,7 +17,9 @@ public class BackoffSelectorStrategyTest extends TestCase {
         ChildData childC = mock(ChildData.class);
         List<ChildData> children = Lists.newArrayList(childA, childC);
 
-        SelectorStrategy backoff = new BackoffSelectorStrategy(10000, 10);
+        // We specify round robin here because it's easier to reason about in tests
+        SelectorStrategy base = new RoundRobinSelectorStrategy();
+        SelectorStrategy backoff = new BackoffSelectorStrategy(base, 10000, 10);
 
         Stat oldStat = mock(Stat.class);
         when(oldStat.getCtime()).thenReturn(System.currentTimeMillis() - 10001);
@@ -27,12 +29,10 @@ public class BackoffSelectorStrategyTest extends TestCase {
         when(newStat.getCtime()).thenReturn(System.currentTimeMillis());
         when(childC.getStat()).thenReturn(newStat);
 
-        assertEquals(childA, backoff.choose(children));
-
         int olderChosen = 0;
         int newerChosen = 0;
 
-        int total = 100000;
+        Integer total = 100000;
         for (int i = 0; i < total; i++) {
             ChildData child = backoff.choose(children);
             if (child == childA) {
@@ -44,7 +44,7 @@ public class BackoffSelectorStrategyTest extends TestCase {
             }
         }
 
-        int pct = total / newerChosen;
+        long pct = Math.round(((newerChosen / total.doubleValue()) * 100));
         assertEquals(10, pct);
     }
 }

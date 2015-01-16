@@ -19,21 +19,29 @@ public class BackoffSelectorStrategy implements SelectorStrategy {
     private long threshold = 10000; // 10 seconds
 
     public BackoffSelectorStrategy(long thresholdMillis, int percentage) {
+        // NOTE: RandomSelectorStrategy is recommended as a base because otherwise the spillover to the next node
+        // would cause a substantial imbalance to that node relative to the others
+        this(new RandomSelectorStrategy(), thresholdMillis, percentage);
+    }
+
+    public BackoffSelectorStrategy(SelectorStrategy base, long thresholdMillis, int percentage) {
+        this.base = base;
         this.threshold = thresholdMillis;
         this.percentage = percentage;
-        this.base = new RoundRobinSelectorStrategy();
     }
 
     @Override
     public ChildData choose(List<ChildData> children) {
-        while (true) {
-            ChildData cd = base.choose(children);
+        ChildData cd = null;
+        final int maxIters = children.size();
+        for (int i = 0; i < maxIters; i++) {
+            cd = base.choose(children);
             final long now = System.currentTimeMillis();
             final long cdTime = cd.getStat().getCtime();
-            if (now - cdTime < threshold && rand.nextInt(100) > percentage) {
-                continue;
+            if (now - cdTime > threshold || rand.nextInt(100) <= percentage) {
+                break;
             }
-            return cd;
         }
+        return cd;
     }
 }
