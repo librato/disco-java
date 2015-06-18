@@ -1,5 +1,6 @@
 package com.librato.disco;
 
+import com.google.common.base.Optional;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -41,6 +42,26 @@ public class DiscoClientTest {
         Thread.sleep(100);
         assertEquals("hello:1231", client.getServiceHost().get());
         assertEquals(1, client.numServiceHosts());
+    }
+
+    @Test
+    public void testGetServiceNode() throws Exception {
+        framework = CuratorFrameworkFactory.builder()
+                .connectionTimeoutMs(1000)
+                .connectString("localhost:2181")
+                .retryPolicy(new ExponentialBackoffRetry(1000, 5))
+                .build();
+        framework.start();
+        final DiscoClientFactory factory = new DiscoClientFactory(framework);
+        client = factory.buildClient("myservice");
+        assertEquals(0, client.numServiceHosts());
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231");
+        // Give it a bit to propagate
+        Thread.sleep(100);
+        Optional<Node> node = client.getServiceNode();
+        assertTrue(node.isPresent());
+        assertEquals("hello1", node.get().host);
+        assertEquals(1231, node.get().port);
     }
 
     @Test

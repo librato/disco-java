@@ -1,5 +1,6 @@
 package com.librato.disco;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -105,6 +106,25 @@ public class DiscoClient {
         return nodes;
     }
 
+    public Optional<Node> getServiceNode() {
+        return nextChildData().transform(new Function<ChildData, Node>() {
+            public Node apply(ChildData input) {
+                return toNode(input);
+            }
+        });
+    }
+
+    /**
+     * @deprecated use getServiceNode() instead
+     */
+    public Optional<String> getServiceHost() {
+        return nextChildData().transform(new Function<ChildData, String>() {
+            public String apply(ChildData input) {
+                return pathFromData(input);
+            }
+        });
+    }
+
     Node toNode(ChildData data) {
         String path = pathFromData(data);
         String[] split = path.split(":");
@@ -114,13 +134,12 @@ public class DiscoClient {
         return new Node(split[0], Integer.valueOf(split[1]));
     }
 
-    public Optional<String> getServiceHost() {
+    Optional<ChildData> nextChildData() {
         final List<ChildData> children = cache.getCurrentData();
         if (children.isEmpty()) {
             return Optional.absent();
         }
-        final ChildData chosen = selector.choose(cache.getCurrentData());
-        return Optional.of(pathFromData(chosen));
+        return Optional.of(selector.choose(cache.getCurrentData()));
     }
 
     String pathFromData(ChildData data) {
