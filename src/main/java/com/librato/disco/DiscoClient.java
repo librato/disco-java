@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Keeps track of a set of services registered under a specific Zookeeper node
  */
+@SuppressWarnings("unused")
 public class DiscoClient {
     private static final Logger log = LoggerFactory.getLogger(DiscoClient.class);
     private static final String serviceNodeFormat = "/services/%s/nodes";
@@ -61,7 +64,6 @@ public class DiscoClient {
             framework.create().creatingParentsIfNeeded().forPath(serviceNode);
         }
         cache.getListenable().addListener(new PathChildrenCacheListener() {
-            @Override
             public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
                 switch (event.getType()) {
                     case CHILD_ADDED:
@@ -91,14 +93,39 @@ public class DiscoClient {
         cache.close();
     }
 
+    public List<Node> getAllNodes() {
+        List<ChildData> data = cache.getCurrentData();
+        if (data.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Node> nodes = new ArrayList<Node>(data.size());
+        for (ChildData child : data) {
+            nodes.add(toNode(child));
+        }
+        return nodes;
+    }
+
+    Node toNode(ChildData data) {
+        String path = pathFromData(data);
+        String[] split = path.split(":");
+        if (split.length != 2) {
+            throw new RuntimeException("Don't know how to parse node path: " + path);
+        }
+        return new Node(split[0], Integer.valueOf(split[1]));
+    }
+
     public Optional<String> getServiceHost() {
         final List<ChildData> children = cache.getCurrentData();
         if (children.isEmpty()) {
             return Optional.absent();
         }
         final ChildData chosen = selector.choose(cache.getCurrentData());
+        return Optional.of(pathFromData(chosen));
+    }
+
+    String pathFromData(ChildData data) {
         try {
-            return Optional.of(pathToNodeCache.get(chosen.getPath()));
+            return pathToNodeCache.get(data.getPath());
         } catch (ExecutionException e) {
             throw Throwables.propagate(Throwables.getRootCause(e));
         }
