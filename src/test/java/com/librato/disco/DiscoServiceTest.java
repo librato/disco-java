@@ -27,7 +27,7 @@ public class DiscoServiceTest {
         ACLBackgroundPathAndBytesable<String> os = mock(ACLBackgroundPathAndBytesable.class);
         when(createBuilder.withMode(CreateMode.EPHEMERAL)).thenReturn(os);
         DiscoService service = new DiscoService(framework, "myservice") ;
-        service.start("foo", 4321);
+        service.start("foo", 4321, true);
         verify(os).forPath("/services/myservice/nodes/foo:4321");
     }
 

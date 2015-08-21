@@ -37,13 +37,16 @@ client.stop();
 
 ```java
 CuratorFramework framework; // Initialize this
-DiscoService service = new DiscoService(framework, "myservice");
+DiscoService service = new DiscoService(framework, "myservice", true);
 service.start("hostname", 4321);
 ```
 
 As long as the service is running, this configuration will be associated with the
 Zookeeper node `/services/myservice/nodes/hostname:4321`. Upon stopping the
-service, the node will be removed from Zookeeper.
+service, the node will be removed from Zookeeper. The third parameter dictates
+whether the service adds a shutdown hook to stop the disco service. This is
+useful because of you want to remove the service from discovery _before_
+peforming a full shutdown, for example before shutting down the HTTP port.
 
 ```java
 service.stop();

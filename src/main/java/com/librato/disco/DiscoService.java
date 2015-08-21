@@ -27,7 +27,7 @@ public class DiscoService {
         this.baseNode = String.format(baseNodeTemplate, serviceName);
     }
 
-    public void start(String nodeName, int port) throws Exception {
+    public void start(String nodeName, int port, boolean addShutdownHook) throws Exception {
         Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         this.nodeName = nodeName;
         this.port = port;
@@ -65,6 +65,20 @@ public class DiscoService {
         createNode();
 
         framework.getConnectionStateListenable().addListener(listener);
+        if (addShutdownHook) {
+            log.info("Adding shutdown hook for disco service");
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run() {
+                    log.info("Shutting down disco service");
+                    try {
+                        DiscoService.this.stop();
+                    } catch (Exception e) {
+                        log.error("Couldn't stop disco service", e);
+                    }
+                }
+            });
+        }
     }
 
     public void stop() throws Exception {
