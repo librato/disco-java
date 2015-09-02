@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Keeps track of a set of services registered under a specific Zookeeper node
  */
 @SuppressWarnings("unused")
-public class DiscoClient {
+public class DiscoClient<T> {
     private static final Logger log = LoggerFactory.getLogger(DiscoClient.class);
     private static final String serviceNodeFormat = "/services/%s/nodes";
     private final CuratorFramework framework;
@@ -37,11 +37,13 @@ public class DiscoClient {
     private final String serviceNode;
     private final LoadingCache<String, String> pathToNodeCache;
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private final Decoder<T> decoder;
 
-    public DiscoClient(CuratorFramework framework, String serviceName, SelectorStrategy selector) {
+    public DiscoClient(CuratorFramework framework, String serviceName, SelectorStrategy selector, Decoder<T> decoder) {
         this.framework = framework;
         this.serviceName = serviceName;
         this.selector = selector;
+        this.decoder = decoder;
         serviceNode = String.format(serviceNodeFormat, serviceName);
         cache = new PathChildrenCache(framework, serviceNode, true);
         pathToNodeCache = CacheBuilder.newBuilder()
@@ -120,7 +122,15 @@ public class DiscoClient {
         if (split.length != 2) {
             throw new RuntimeException("Don't know how to parse node path: " + path);
         }
-        return new Node(split[0], Integer.valueOf(split[1]));
+        T payload = null;
+        if (data.getData() != null && data.getData().length > 0) {
+            if (decoder == null) {
+                log.warn("Data found but no decoder to parse it with");
+            } else {
+                payload = decoder.decode(data.getData());
+            }
+        }
+        return new Node<>(split[0], Integer.valueOf(split[1]), payload);
     }
 
     Optional<ChildData> nextChildData() {

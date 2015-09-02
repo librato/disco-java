@@ -26,9 +26,10 @@ public class DiscoServiceTest {
         when(framework.getState()).thenReturn(CuratorFrameworkState.STARTED);
         ACLBackgroundPathAndBytesable<String> os = mock(ACLBackgroundPathAndBytesable.class);
         when(createBuilder.withMode(CreateMode.EPHEMERAL)).thenReturn(os);
-        DiscoService service = new DiscoService(framework, "myservice") ;
-        service.start("foo", 4321, true);
-        verify(os).forPath("/services/myservice/nodes/foo:4321");
+        DiscoService service = new DiscoService(framework, "myservice");
+        byte[] payload = "foo bar baz bingo".getBytes();
+        service.start("foo", 4321, true, payload);
+        verify(os).forPath(eq("/services/myservice/nodes/foo:4321"), eq(payload));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.librato.disco;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -12,16 +13,25 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DiscoClientTest {
     private static final Logger log = LoggerFactory.getLogger(DiscoClientTest.class);
+    private static final SelectorStrategy strategy = new RoundRobinSelectorStrategy();
+    private static final Decoder<MyObject> decoder = new Decoder<MyObject>() {
+        @Override
+        public MyObject decode(byte[] bytes) {
+            return new MyObject(bytes);
+        }
+    };
 
     CuratorFramework framework;
-    DiscoClient client;
+    DiscoClient<MyObject> client;
 
     @Test
     public void testBasicListener() throws Exception {
@@ -32,15 +42,16 @@ public class DiscoClientTest {
                 .retryPolicy(new ExponentialBackoffRetry(1000, 5))
                 .build();
         framework.start();
-        final DiscoClientFactory factory = new DiscoClientFactory(framework);
+        final DiscoClientFactory<MyObject> factory = new DiscoClientFactory<>(framework, strategy, decoder);
         client = factory.buildClient(serviceName);
 
         assertEquals(0, client.numServiceHosts());
 
-        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello:1231");
+        byte[] payload = "This is the payload!".getBytes();
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello:1231", payload);
         // Give it a bit to propagate
         Thread.sleep(100);
-        assertEquals(new Node("hello", 1231), client.getServiceNode().get());
+        assertEquals(new Node<>("hello", 1231, new MyObject(payload)), client.getServiceNode().get());
         assertEquals(1, client.numServiceHosts());
     }
 
@@ -52,16 +63,19 @@ public class DiscoClientTest {
                 .retryPolicy(new ExponentialBackoffRetry(1000, 5))
                 .build();
         framework.start();
-        final DiscoClientFactory factory = new DiscoClientFactory(framework);
+        final DiscoClientFactory<MyObject> factory = new DiscoClientFactory<>(framework);
         client = factory.buildClient("myservice");
         assertEquals(0, client.numServiceHosts());
-        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231");
+        byte[] payload = "lol".getBytes();
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231", payload);
         // Give it a bit to propagate
         Thread.sleep(100);
         Optional<Node> node = client.getServiceNode();
         assertTrue(node.isPresent());
         assertEquals("hello1", node.get().host);
         assertEquals(1231, node.get().port);
+        // No decoder means payload is null
+        assertNull(node.get().payload);
     }
 
     @Test
@@ -72,20 +86,20 @@ public class DiscoClientTest {
                 .retryPolicy(new ExponentialBackoffRetry(1000, 5))
                 .build();
         framework.start();
-        final DiscoClientFactory factory = new DiscoClientFactory(framework);
+        final DiscoClientFactory<MyObject> factory = new DiscoClientFactory<>(framework, strategy, decoder);
         client = factory.buildClient("myservice");
-
         assertEquals(0, client.numServiceHosts());
-
-        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231");
-        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello2:1232");
+        DiscoService svcA = new DiscoService(framework, "myservice");
+        svcA.start("hello1", 1231, false, null); // null payload
+        DiscoService svcB = new DiscoService(framework, "myservice");
+        byte[] pload = "testo".getBytes();
+        svcB.start("hello2", 1232, false, pload); // real payload
         // Give it a bit to propagate
         Thread.sleep(100);
-
         Set<Node> nodes = new HashSet<>(client.getAllNodes());
         assertEquals(2, nodes.size());
-        assertTrue(nodes.contains(new Node("hello1", 1231)));
-        assertTrue(nodes.contains(new Node("hello2", 1232)));
+        assertTrue(nodes.contains(new Node<>("hello1", 1231, null)));
+        assertTrue(nodes.contains(new Node<>("hello2", 1232, new MyObject(pload))));
     }
 
     @After
@@ -99,6 +113,34 @@ public class DiscoClientTest {
         }
         if (framework != null) {
             framework.close();
+        }
+    }
+
+    private static class MyObject {
+        final String foo;
+
+        private MyObject(byte[] bytes) {
+            this.foo = new String(bytes);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MyObject myObject = (MyObject) o;
+            return Objects.equals(foo, myObject.foo);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(foo);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                    .add("foo", foo)
+                    .toString();
         }
     }
 }

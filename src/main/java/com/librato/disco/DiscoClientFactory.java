@@ -6,9 +6,10 @@ import org.apache.curator.framework.CuratorFramework;
 /**
  * Factory for building DiscoClients using the same {@link org.apache.curator.framework.CuratorFramework} instance
  */
-public class DiscoClientFactory {
+public class DiscoClientFactory<T> {
     private final CuratorFramework framework;
     private final SelectorStrategy strategy;
+    private final Decoder<T> decoder;
 
     /**
      * Constructor that defaults to using {@link RoundRobinSelectorStrategy} strategy
@@ -25,6 +26,18 @@ public class DiscoClientFactory {
     public DiscoClientFactory(CuratorFramework framework, SelectorStrategy strategy) {
         this.framework = framework;
         this.strategy = strategy;
+        this.decoder = null;
+    }
+
+    /**
+     * @param framework Initialized {@link CuratorFramework}
+     * @param strategy Selector for use in this factory
+     * @param decoder Decoder for use in thie factory
+     */
+    public DiscoClientFactory(CuratorFramework framework, SelectorStrategy strategy, Decoder<T> decoder) {
+        this.framework = framework;
+        this.strategy = strategy;
+        this.decoder = decoder;
     }
 
     /**
@@ -33,8 +46,8 @@ public class DiscoClientFactory {
      * @param serviceName Passed into {@link DiscoClient} constructor
      * @return new initialized {@link DiscoClient} instance
      */
-    public DiscoClient buildClient(final String serviceName) {
-        final DiscoClient client = new DiscoClient(framework, serviceName, strategy);
+    public DiscoClient<T> buildClient(final String serviceName) {
+        final DiscoClient<T> client = new DiscoClient<>(framework, serviceName, strategy, decoder);
         try {
             client.start();
         } catch (Exception e) {

@@ -20,6 +20,7 @@ public class DiscoService {
     String nodeName;
     int port;
     String node;
+    byte[] payload;
     ConnectionStateListener listener;
 
     public DiscoService(CuratorFramework framework, String serviceName) {
@@ -27,10 +28,11 @@ public class DiscoService {
         this.baseNode = String.format(baseNodeTemplate, serviceName);
     }
 
-    public void start(String nodeName, int port, boolean addShutdownHook) throws Exception {
+    public void start(String nodeName, int port, boolean addShutdownHook, byte[] payload) throws Exception {
         Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
         this.nodeName = nodeName;
         this.port = port;
+        this.payload = payload;
 
         // Register ephemeral node as representation of this service's nodename and port
         // such as /services/myservice/nodes/192.168.1.1:8000
@@ -40,7 +42,6 @@ public class DiscoService {
             public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
                 if (connectionState == ConnectionState.RECONNECTED) {
                     log.info("Re-registering with ZK as node {}", node);
-
                     try {
                         deleteNode();
                         createNode();
@@ -87,10 +88,9 @@ public class DiscoService {
     }
 
     private void createNode() throws Exception {
-        // TODO: Add payload capability
         framework.create()
                 .withMode(CreateMode.EPHEMERAL)
-                .forPath(node);
+                .forPath(node, payload);
     }
 
     private void deleteNode() throws Exception {
