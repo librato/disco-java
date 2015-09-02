@@ -15,13 +15,17 @@ when a service is added or removed.
 
 ## Client usage
 
+The server allows you to save arbitrary data per node that is accessible from
+the client via the `Decoder<T>` interface.
+
 ```java
 CuratorFramework framework; // Initialize this
 SelectorStrategy selector = new RoundRobinSelectorStrategy();
-DiscoClient client = new DiscoClient(framework, serviceName, selector);
+Decoder<T> decoder; // Initialize this
+DiscoClient<> client = new DiscoClient<T>(framework, serviceName, selector, decoder);
 client.start(host, port);
 
-Optional<Node> node = client.getServiceNode();
+Optional<Node<T>> node = client.getServiceNode();
 ```
 
 Based on the selector strategy, the service will return the nodename of a
@@ -37,16 +41,18 @@ client.stop();
 
 ```java
 CuratorFramework framework; // Initialize this
-DiscoService service = new DiscoService(framework, "myservice", true);
-service.start("hostname", 4321);
+byte[] payload; // Initialize this
+DiscoService service = new DiscoService(framework, "myservice");
+service.start("hostname", 4321, true, payload);
 ```
 
 As long as the service is running, this configuration will be associated with the
-Zookeeper node `/services/myservice/nodes/hostname:4321`. Upon stopping the
-service, the node will be removed from Zookeeper. The third parameter dictates
-whether the service adds a shutdown hook to stop the disco service. This is
-useful because of you want to remove the service from discovery _before_
-peforming a full shutdown, for example before shutting down the HTTP port.
+Zookeeper node `/services/myservice/nodes/hostname:4321` and the `byte[] 
+payload` as the node's data. Upon stopping the service, the node will be
+removed from Zookeeper. The third parameter dictates whether the service adds a
+shutdown hook to stop the disco service. This is useful because of you want to
+remove the service from discovery _before_ peforming a full shutdown, for
+example before shutting down the HTTP port.
 
 ```java
 service.stop();
