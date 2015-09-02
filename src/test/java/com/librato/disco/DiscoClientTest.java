@@ -79,7 +79,7 @@ public class DiscoClientTest {
         framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231", payload);
         // Give it a bit to propagate
         Thread.sleep(100);
-        Optional<Node> node = client.getServiceNode();
+        Optional<Node<MyObject>> node = client.getServiceNode();
         assertTrue(node.isPresent());
         assertEquals("hello1", node.get().host);
         assertEquals(1231, node.get().port);
@@ -106,7 +106,7 @@ public class DiscoClientTest {
         framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231", payload);
         // Give it a bit to propagate
         Thread.sleep(100);
-        Optional<Node> node = client.getServiceNode();
+        Optional<Node<MyObject>> node = client.getServiceNode();
         assertTrue(node.isPresent());
         assertEquals("hello1", node.get().host);
         assertEquals(1231, node.get().port);
@@ -133,9 +133,9 @@ public class DiscoClientTest {
         svcB.start("hello2", 1232, false, pload); // real payload
         // Give it a bit to propagate
         Thread.sleep(100);
-        Set<Node> nodes = new HashSet<>(client.getAllNodes());
+        HashSet<Node<MyObject>> nodes = new HashSet<>(client.getAllNodes());
         assertEquals(2, nodes.size());
-        assertTrue(nodes.contains(new Node<>("hello1", 1231, null)));
+        assertTrue(nodes.contains(new Node<MyObject>("hello1", 1231, null)));
         assertTrue(nodes.contains(new Node<>("hello2", 1232, new MyObject(pload))));
     }
 

@@ -96,27 +96,27 @@ public class DiscoClient<T> {
         cache.close();
     }
 
-    public List<Node> getAllNodes() {
+    public List<Node<T>> getAllNodes() {
         List<ChildData> data = cache.getCurrentData();
         if (data.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Node> nodes = new ArrayList<>(data.size());
+        List<Node<T>> nodes = new ArrayList<>(data.size());
         for (ChildData child : data) {
             nodes.add(toNode(child));
         }
         return nodes;
     }
 
-    public Optional<Node> getServiceNode() {
-        return nextChildData().transform(new Function<ChildData, Node>() {
-            public Node apply(ChildData input) {
+    public Optional<Node<T>> getServiceNode() {
+        return nextChildData().transform(new Function<ChildData, Node<T>>() {
+            public Node<T> apply(ChildData input) {
                 return toNode(input);
             }
         });
     }
 
-    Node toNode(ChildData data) {
+    Node<T> toNode(ChildData data) {
         String path = pathFromData(data);
         String[] split = path.split(":");
         if (split.length != 2) {
