@@ -127,7 +127,11 @@ public class DiscoClient<T> {
             if (decoder == null) {
                 log.warn("Data found but no decoder to parse it with");
             } else {
-                payload = decoder.decode(data.getData());
+                try {
+                    payload = decoder.decode(data.getData());
+                } catch (Exception ex) {
+                    decoder.handleException(ex);
+                }
             }
         }
         return new Node<>(split[0], Integer.valueOf(split[1]), payload);

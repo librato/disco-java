@@ -19,6 +19,10 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class DiscoClientTest {
     private static final Logger log = LoggerFactory.getLogger(DiscoClientTest.class);
@@ -27,6 +31,11 @@ public class DiscoClientTest {
         @Override
         public MyObject decode(byte[] bytes) {
             return new MyObject(bytes);
+        }
+
+        @Override
+        public void handleException(Exception ex) {
+            log.error("Exception when decoding", ex);
         }
     };
 
@@ -76,6 +85,34 @@ public class DiscoClientTest {
         assertEquals(1231, node.get().port);
         // No decoder means payload is null
         assertNull(node.get().payload);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testDecoderFailure() throws Exception {
+        framework = CuratorFrameworkFactory.builder()
+                .connectionTimeoutMs(1000)
+                .connectString("localhost:2181")
+                .retryPolicy(new ExponentialBackoffRetry(1000, 5))
+                .build();
+        framework.start();
+        Decoder<MyObject> failingDecoder = mock(Decoder.class);
+        RuntimeException exception = new RuntimeException();
+        when(failingDecoder.decode(any(byte[].class))).thenThrow(exception);
+        final DiscoClientFactory<MyObject> factory = new DiscoClientFactory<>(framework, strategy, failingDecoder);
+        client = factory.buildClient("myservice");
+        assertEquals(0, client.numServiceHosts());
+        byte[] payload = "lol".getBytes();
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello1:1231", payload);
+        // Give it a bit to propagate
+        Thread.sleep(100);
+        Optional<Node> node = client.getServiceNode();
+        assertTrue(node.isPresent());
+        assertEquals("hello1", node.get().host);
+        assertEquals(1231, node.get().port);
+        // null on exception
+        assertNull(node.get().payload);
+        verify(failingDecoder).handleException(exception);
     }
 
     @Test

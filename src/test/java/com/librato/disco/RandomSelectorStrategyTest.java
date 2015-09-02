@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 public class RandomSelectorStrategyTest {

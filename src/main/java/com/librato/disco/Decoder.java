@@ -11,4 +11,10 @@ public interface Decoder<T> {
      * @return returns the object as decoded from bytes
      */
     T decode(byte[] bytes);
+
+    /**
+     * Handle decoding exception
+     * @param ex the exception the decoder raised
+     */
+    void handleException(Exception ex);
 }
