@@ -21,7 +21,7 @@ SelectorStrategy selector = new RoundRobinSelectorStrategy();
 DiscoClient client = new DiscoClient(framework, serviceName, selector);
 client.start(host, port);
 
-Optional<String> serviceHost = client.getServiceHost();
+Optional<Node> node = client.getServiceNode();
 ```
 
 Based on the selector strategy, the service will return the nodename of a

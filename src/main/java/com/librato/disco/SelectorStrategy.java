@@ -9,5 +9,5 @@ import java.util.List;
  * Interface to select a node from set of nodes
  */
 public interface SelectorStrategy {
-    public ChildData choose(List<ChildData> children);
+    ChildData choose(List<ChildData> children);
 }

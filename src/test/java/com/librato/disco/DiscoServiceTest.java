@@ -47,6 +47,7 @@ public class DiscoServiceTest {
         verify(deleteBuilder).forPath(path);
     }
 
+    @SuppressWarnings("unchecked")
     private CuratorFramework mockFramework() {
         CuratorFramework framework = mock(CuratorFramework.class);
         when(framework.getConnectionStateListenable()).thenReturn(mock(Listenable.class));

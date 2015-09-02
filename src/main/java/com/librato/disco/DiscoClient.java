@@ -99,7 +99,7 @@ public class DiscoClient {
         if (data.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Node> nodes = new ArrayList<Node>(data.size());
+        List<Node> nodes = new ArrayList<>(data.size());
         for (ChildData child : data) {
             nodes.add(toNode(child));
         }
@@ -110,17 +110,6 @@ public class DiscoClient {
         return nextChildData().transform(new Function<ChildData, Node>() {
             public Node apply(ChildData input) {
                 return toNode(input);
-            }
-        });
-    }
-
-    /**
-     * @deprecated use getServiceNode() instead
-     */
-    public Optional<String> getServiceHost() {
-        return nextChildData().transform(new Function<ChildData, String>() {
-            public String apply(ChildData input) {
-                return pathFromData(input);
             }
         });
     }

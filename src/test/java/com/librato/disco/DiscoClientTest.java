@@ -33,14 +33,14 @@ public class DiscoClientTest {
                 .build();
         framework.start();
         final DiscoClientFactory factory = new DiscoClientFactory(framework);
-        client = factory.buildClient("myservice");
+        client = factory.buildClient(serviceName);
 
         assertEquals(0, client.numServiceHosts());
 
         framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/hello:1231");
         // Give it a bit to propagate
         Thread.sleep(100);
-        assertEquals("hello:1231", client.getServiceHost().get());
+        assertEquals(new Node("hello", 1231), client.getServiceNode().get());
         assertEquals(1, client.numServiceHosts());
     }
 
@@ -82,7 +82,7 @@ public class DiscoClientTest {
         // Give it a bit to propagate
         Thread.sleep(100);
 
-        Set<Node> nodes = new HashSet<Node>(client.getAllNodes());
+        Set<Node> nodes = new HashSet<>(client.getAllNodes());
         assertEquals(2, nodes.size());
         assertTrue(nodes.contains(new Node("hello1", 1231)));
         assertTrue(nodes.contains(new Node("hello2", 1232)));
