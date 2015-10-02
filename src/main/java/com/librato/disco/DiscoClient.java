@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,7 +37,7 @@ public class DiscoClient<T> {
     private final SelectorStrategy selector;
     private final PathChildrenCache cache;
     private final String serviceNode;
-    private final LoadingCache<String, String> pathToNodeCache;
+    private final Cache<ChildData, Node<T>> nodeCache;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final Decoder<T> decoder;
 
@@ -46,18 +48,9 @@ public class DiscoClient<T> {
         this.decoder = decoder;
         serviceNode = String.format(serviceNodeFormat, serviceName);
         cache = new PathChildrenCache(framework, serviceNode, true);
-        pathToNodeCache = CacheBuilder.newBuilder()
+        nodeCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
-                .build(new CacheLoader<String, String>() {
-                    @Override
-                    public String load(String key) throws Exception {
-                        if (!key.startsWith(serviceNode)) {
-                            throw new RuntimeException(String.format("Expected node format %s", serviceNode));
-                        }
-                        // + 1 to also remove the trailing slash
-                        return key.substring(serviceNode.length() + 1);
-                    }
-                });
+                .build();
     }
 
     public void start() throws Exception {
@@ -116,7 +109,20 @@ public class DiscoClient<T> {
         });
     }
 
-    Node<T> toNode(ChildData data) {
+    Node<T> toNode(final ChildData data) {
+        try {
+            return nodeCache.get(data, new Callable<Node<T>>() {
+                @Override
+                public Node<T> call() throws Exception {
+                    return _toNode(data);
+                }
+            });
+        } catch (ExecutionException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    Node<T> _toNode(ChildData data) {
         String path = pathFromData(data);
         String[] split = path.split(":");
         if (split.length != 2) {
@@ -146,11 +152,12 @@ public class DiscoClient<T> {
     }
 
     String pathFromData(ChildData data) {
-        try {
-            return pathToNodeCache.get(data.getPath());
-        } catch (ExecutionException e) {
-            throw Throwables.propagate(Throwables.getRootCause(e));
+        String path = data.getPath();
+        if (!path.startsWith(serviceNode)) {
+            throw new RuntimeException(String.format("Expected node format %s", serviceNode));
         }
+        // + 1 to also remove the trailing slash
+        return path.substring(serviceNode.length() + 1);
     }
 
     public int numServiceHosts() {

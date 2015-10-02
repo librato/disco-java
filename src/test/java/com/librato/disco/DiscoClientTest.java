@@ -7,7 +7,10 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,32 +18,33 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class DiscoClientTest {
     private static final Logger log = LoggerFactory.getLogger(DiscoClientTest.class);
     private static final SelectorStrategy strategy = new RoundRobinSelectorStrategy();
-    private static final Decoder<MyObject> decoder = new Decoder<MyObject>() {
-        @Override
-        public MyObject decode(byte[] bytes) {
-            return new MyObject(bytes);
-        }
-
-        @Override
-        public void handleException(Exception ex) {
-            log.error("Exception when decoding", ex);
-        }
-    };
+    private Decoder<MyObject> decoder;
 
     CuratorFramework framework;
     DiscoClient<MyObject> client;
+
+    @SuppressWarnings("unchecked")
+    @Before
+    public void setup() {
+        decoder = mock(Decoder.class);
+        when(decoder.decode(any(byte[].class))).thenAnswer(new Answer<MyObject>() {
+            @Override
+            public MyObject answer(InvocationOnMock invocation) throws Throwable {
+                return new MyObject((byte[]) invocation.getArguments()[0]);
+            }
+        });
+    }
 
     @Test
     public void testBasicListener() throws Exception {
@@ -62,6 +66,11 @@ public class DiscoClientTest {
         Thread.sleep(100);
         assertEquals(new Node<>("hello", 1231, new MyObject(payload)), client.getServiceNode().get());
         assertEquals(1, client.numServiceHosts());
+        for (int i = 0; i < 100; i++) {
+            client.getServiceNode();
+        }
+        // We want to call the decoder only once for the same data
+        verify(decoder, times(1)).decode(eq(payload));
     }
 
     @Test
@@ -112,7 +121,10 @@ public class DiscoClientTest {
         assertEquals(1231, node.get().port);
         // null on exception
         assertNull(node.get().payload);
-        verify(failingDecoder).handleException(exception);
+        for (int i = 0; i < 100; i++) {
+            client.getServiceNode();
+        }
+        verify(failingDecoder, times(1)).handleException(exception);
     }
 
     @Test
