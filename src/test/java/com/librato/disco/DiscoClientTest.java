@@ -96,6 +96,29 @@ public class DiscoClientTest {
         assertNull(node.get().payload);
     }
 
+    @Test
+    public void testGetServiceNodeIPV6() throws Exception {
+        framework = CuratorFrameworkFactory.builder()
+                .connectionTimeoutMs(1000)
+                .connectString("localhost:2181")
+                .retryPolicy(new ExponentialBackoffRetry(1000, 5))
+                .build();
+        framework.start();
+        final DiscoClientFactory<MyObject> factory = new DiscoClientFactory<>(framework);
+        client = factory.buildClient("myservice");
+        assertEquals(0, client.numServiceHosts());
+        byte[] payload = "lol".getBytes();
+        framework.create().withMode(CreateMode.EPHEMERAL).forPath("/services/myservice/nodes/a64e:31ff:fe02:3f88:1231", payload);
+        // Give it a bit to propagate
+        Thread.sleep(100);
+        Optional<Node<MyObject>> node = client.getServiceNode();
+        assertTrue(node.isPresent());
+        assertEquals("a64e:31ff:fe02:3f88", node.get().host);
+        assertEquals(1231, node.get().port);
+        // No decoder means payload is null
+        assertNull(node.get().payload);
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testDecoderFailure() throws Exception {
