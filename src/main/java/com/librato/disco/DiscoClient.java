@@ -124,10 +124,10 @@ public class DiscoClient<T> {
 
     Node<T> _toNode(ChildData data) {
         String path = pathFromData(data);
-        String[] split = path.split(":");
-        if (split.length != 2) {
-            throw new RuntimeException("Don't know how to parse node path: " + path);
-        }
+        // This is somewhat hacky support for ipv6 with the same host:port notation
+        int l = path.lastIndexOf(':');
+        String host = path.substring(0, l);
+        String port = path.substring(l + 1);
         T payload = null;
         if (data.getData() != null && data.getData().length > 0) {
             if (decoder == null) {
@@ -140,7 +140,7 @@ public class DiscoClient<T> {
                 }
             }
         }
-        return new Node<>(split[0], Integer.valueOf(split[1]), payload);
+        return new Node<>(host, Integer.valueOf(port), payload);
     }
 
     Optional<ChildData> nextChildData() {
