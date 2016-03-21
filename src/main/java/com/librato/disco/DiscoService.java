@@ -88,9 +88,25 @@ public class DiscoService {
     }
 
     private void createNode() throws Exception {
-        framework.create()
-                .withMode(CreateMode.EPHEMERAL)
-                .forPath(node, payload);
+        int retries = 15;
+        long sleepMillis = 1000;
+        Exception exception = null;
+
+        while (retries > 0) {
+            try {
+                framework.create()
+                        .withMode(CreateMode.EPHEMERAL)
+                        .forPath(node, payload);
+                return;
+            } catch (Exception e) {
+                log.warn("Could not create " + node + ", retrying", e);
+                exception = e;
+                Thread.sleep(sleepMillis);
+                retries -= 1;
+            }
+        }
+        log.error("Could not create " + node, exception);
+        throw exception;
     }
 
     private void deleteNode() throws Exception {
