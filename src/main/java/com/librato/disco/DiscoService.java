@@ -42,13 +42,7 @@ public class DiscoService {
             public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
                 if (connectionState == ConnectionState.RECONNECTED) {
                     log.info("Re-registering with ZK as node {}", node);
-                    try {
-                        deleteNode();
-                        createNode();
-                    } catch (Exception e) {
-                        log.error("Exception recreating path", e);
-                        throw new RuntimeException(e);
-                    }
+                    deleteAndCreateNode();
                 }
             }
         };
@@ -63,7 +57,7 @@ public class DiscoService {
         }
 
         log.info("Registering with ZK as node {}", node);
-        createNode();
+        deleteAndCreateNode();
 
         framework.getConnectionStateListenable().addListener(listener);
         if (addShutdownHook) {
@@ -82,31 +76,25 @@ public class DiscoService {
         }
     }
 
+    private void deleteAndCreateNode() {
+        try {
+            deleteNode();
+            createNode();
+        } catch (Exception e) {
+            log.error("Exception recreating path", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     public void stop() throws Exception {
         framework.getConnectionStateListenable().removeListener(listener);
         deleteNode();
     }
 
     private void createNode() throws Exception {
-        int retries = 15;
-        long sleepMillis = 1000;
-        Exception exception = null;
-
-        while (retries > 0) {
-            try {
-                framework.create()
-                        .withMode(CreateMode.EPHEMERAL)
-                        .forPath(node, payload);
-                return;
-            } catch (Exception e) {
-                log.warn("Could not create " + node + ", retrying", e);
-                exception = e;
-                Thread.sleep(sleepMillis);
-                retries -= 1;
-            }
-        }
-        log.error("Could not create " + node, exception);
-        throw exception;
+        framework.create()
+                .withMode(CreateMode.EPHEMERAL)
+                .forPath(node, payload);
     }
 
     private void deleteNode() throws Exception {
