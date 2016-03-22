@@ -32,6 +32,28 @@ public class DiscoServiceTest {
         verify(os).forPath(eq("/services/myservice/nodes/foo:4321"), eq(payload));
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testDeletesEphemeralNode() throws Exception {
+        CuratorFramework framework = mockFramework();
+        ExistsBuilder ceBuilder = mock(ExistsBuilder.class);
+        CreateBuilder createBuilder = mock(CreateBuilder.class);
+        when(framework.checkExists()).thenReturn(ceBuilder);
+        when(ceBuilder.forPath("/services/myservice/nodes")).thenReturn(mock(Stat.class));
+        when(ceBuilder.forPath("/services/myservice/nodes/foo:4321")).thenReturn(mock(Stat.class));
+        when(framework.create()).thenReturn(createBuilder);
+        when(framework.getState()).thenReturn(CuratorFrameworkState.STARTED);
+        DeleteBuilder deleteBuilder = mock(DeleteBuilder.class);
+        when(framework.delete()).thenReturn(deleteBuilder);
+        ACLBackgroundPathAndBytesable<String> os = mock(ACLBackgroundPathAndBytesable.class);
+        when(createBuilder.withMode(CreateMode.EPHEMERAL)).thenReturn(os);
+        DiscoService service = new DiscoService(framework, "myservice");
+        byte[] payload = "foo bar baz bingo".getBytes();
+        service.start("foo", 4321, true, payload);
+        verify(deleteBuilder).forPath("/services/myservice/nodes/foo:4321");
+        verify(os).forPath(eq("/services/myservice/nodes/foo:4321"), eq(payload));
+    }
+
     @Test
     public void testStop() throws Exception {
         Stat stat = new Stat();

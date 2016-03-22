@@ -42,13 +42,7 @@ public class DiscoService {
             public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
                 if (connectionState == ConnectionState.RECONNECTED) {
                     log.info("Re-registering with ZK as node {}", node);
-                    try {
-                        deleteNode();
-                        createNode();
-                    } catch (Exception e) {
-                        log.error("Exception recreating path", e);
-                        throw new RuntimeException(e);
-                    }
+                    deleteAndCreateNode();
                 }
             }
         };
@@ -63,7 +57,7 @@ public class DiscoService {
         }
 
         log.info("Registering with ZK as node {}", node);
-        createNode();
+        deleteAndCreateNode();
 
         framework.getConnectionStateListenable().addListener(listener);
         if (addShutdownHook) {
@@ -79,6 +73,16 @@ public class DiscoService {
                     }
                 }
             });
+        }
+    }
+
+    private void deleteAndCreateNode() {
+        try {
+            deleteNode();
+            createNode();
+        } catch (Exception e) {
+            log.error("Exception recreating path", e);
+            throw new RuntimeException(e);
         }
     }
 
