@@ -16,6 +16,10 @@ public class Node<T> {
         this.payload = payload;
     }
 
+    public HostAndPort getHostAndPort() {
+        return new HostAndPort(host, port);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
