@@ -14,15 +14,10 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -179,7 +174,7 @@ public class DiscoClientTest {
         if (client != null) {
             try {
                 client.stop();
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 log.error("stopping DiscoService failed", ex);
             }
         }

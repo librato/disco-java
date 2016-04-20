@@ -10,6 +10,7 @@ public class DiscoClientFactory<T> {
     private final CuratorFramework framework;
     private final SelectorStrategy strategy;
     private final Decoder<T> decoder;
+    private final ILevel2CacheStrategy l2CacheStrategy;
 
     /**
      * Constructor that defaults to using {@link RoundRobinSelectorStrategy} strategy
@@ -27,6 +28,7 @@ public class DiscoClientFactory<T> {
         this.framework = framework;
         this.strategy = strategy;
         this.decoder = null;
+        this.l2CacheStrategy = null;
     }
 
     /**
@@ -38,6 +40,20 @@ public class DiscoClientFactory<T> {
         this.framework = framework;
         this.strategy = strategy;
         this.decoder = decoder;
+        this.l2CacheStrategy = null;
+    }
+
+    /**
+     * @param framework Initialized {@link CuratorFramework}
+     * @param strategy Selector for use in this factory
+     * @param decoder Decoder for use in thie factory
+     * @param l2CacheStrategy a strategy supplier for using the l2 cache. null if no caching is desired.
+     */
+    public DiscoClientFactory(CuratorFramework framework, SelectorStrategy strategy, Decoder<T> decoder, ILevel2CacheStrategy l2CacheStrategy) {
+        this.framework = framework;
+        this.strategy = strategy;
+        this.decoder = decoder;
+        this.l2CacheStrategy = l2CacheStrategy;
     }
 
     /**
@@ -47,7 +63,13 @@ public class DiscoClientFactory<T> {
      * @return new initialized {@link DiscoClient} instance
      */
     public DiscoClient<T> buildClient(final String serviceName) {
-        final DiscoClient<T> client = new DiscoClient<>(framework, serviceName, strategy, decoder);
+        final DiscoClient<T> client;
+        client = new DiscoClient<>(
+                framework,
+                serviceName,
+                strategy,
+                decoder,
+                l2CacheStrategy);
         try {
             client.start();
         } catch (Exception e) {
