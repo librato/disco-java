@@ -2,28 +2,19 @@ package com.librato.disco;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Keeps track of a set of services registered under a specific Zookeeper node
@@ -31,62 +22,50 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("unused")
 public class DiscoClient<T> {
     private static final Logger log = LoggerFactory.getLogger(DiscoClient.class);
-    private static final String serviceNodeFormat = "/services/%s/nodes";
+    private static final String serviceNodesFormat = "/services/%s/nodes";
     private final CuratorFramework framework;
-    private final String serviceName;
     private final SelectorStrategy selector;
-    private final PathChildrenCache cache;
-    private final String serviceNode;
-    private final Cache<ChildData, Node<T>> nodeCache;
-    private final AtomicBoolean started = new AtomicBoolean(false);
+    private final String serviceNodesPath;
+    private final Cache<ChildData, Node<T>> deserializedNodeCache;
     private final Decoder<T> decoder;
+    private final StarterStopper starterStopper = new StarterStopper();
+    private final IStateCache cache;
 
-    public DiscoClient(CuratorFramework framework, String serviceName, SelectorStrategy selector, Decoder<T> decoder) {
+    public DiscoClient(CuratorFramework framework,
+                       String serviceName,
+                       SelectorStrategy selector,
+                       Decoder<T> decoder) {
+        this(framework, serviceName, selector, decoder, null);
+    }
+
+    public DiscoClient(CuratorFramework framework,
+                       String serviceName,
+                       SelectorStrategy selector,
+                       Decoder<T> decoder,
+                       ILevel2CacheStrategy cacheStrat) {
         this.framework = framework;
-        this.serviceName = serviceName;
         this.selector = selector;
         this.decoder = decoder;
-        serviceNode = String.format(serviceNodeFormat, serviceName);
-        cache = new PathChildrenCache(framework, serviceNode, true);
-        nodeCache = CacheBuilder.newBuilder()
+        serviceNodesPath = String.format(serviceNodesFormat, serviceName);
+        deserializedNodeCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
                 .build();
+        PathChildrenStateCache zkStateCache = new PathChildrenStateCache(framework, serviceName, serviceNodesPath);
+        this.cache = new Level2StateCache(serviceName, zkStateCache, cacheStrat);
     }
 
     public void start() throws Exception {
-        Preconditions.checkArgument(framework.getState() == CuratorFrameworkState.STARTED);
-        Preconditions.checkArgument(started.compareAndSet(false, true));
-        if (framework.checkExists().forPath(serviceNode) == null) {
-            framework.create().creatingParentsIfNeeded().forPath(serviceNode);
-        }
-        cache.getListenable().addListener(new PathChildrenCacheListener() {
-            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
-                switch (event.getType()) {
-                    case CHILD_ADDED:
-                        log.info("`{}` service node added: {}", serviceName, event.getData().getPath());
-                        break;
-                    case CHILD_UPDATED:
-                        break;
-                    case CHILD_REMOVED:
-                        log.info("`{}` service node removed: {}", serviceName, event.getData().getPath());
-                        break;
-                    case CONNECTION_SUSPENDED:
-                        break;
-                    case CONNECTION_RECONNECTED:
-                        break;
-                    case CONNECTION_LOST:
-                        break;
-                    case INITIALIZED:
-                        break;
-                }
-            }
-        });
-        cache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+        starterStopper.start();
+        cache.start();
     }
 
-    public void stop() throws IOException {
-        Preconditions.checkArgument(started.compareAndSet(true, false));
-        cache.close();
+    public void stop() throws Exception {
+        starterStopper.stop();
+        cache.stop();
+    }
+
+    public boolean isStarted() {
+        return starterStopper.isStarted();
     }
 
     public List<Node<T>> getAllNodes() {
@@ -111,7 +90,7 @@ public class DiscoClient<T> {
 
     Node<T> toNode(final ChildData data) {
         try {
-            return nodeCache.get(data, new Callable<Node<T>>() {
+            return deserializedNodeCache.get(data, new Callable<Node<T>>() {
                 @Override
                 public Node<T> call() throws Exception {
                     return _toNode(data);
@@ -153,19 +132,15 @@ public class DiscoClient<T> {
 
     String pathFromData(ChildData data) {
         String path = data.getPath();
-        if (!path.startsWith(serviceNode)) {
-            throw new RuntimeException(String.format("Expected node format %s", serviceNode));
+        if (!path.startsWith(serviceNodesPath)) {
+            throw new RuntimeException(String.format("Expected node format %s", serviceNodesPath));
         }
         // + 1 to also remove the trailing slash
-        return path.substring(serviceNode.length() + 1);
+        return path.substring(serviceNodesPath.length() + 1);
     }
 
     public int numServiceHosts() {
         return cache.getCurrentData().size();
-    }
-
-    public boolean isStarted() {
-        return started.get();
     }
 
     public CuratorFramework getFramework() {
