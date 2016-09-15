@@ -1,5 +1,6 @@
 package com.librato.disco;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,8 @@ public class Level2StateCache implements IStateCache {
     private final ConcurrentMap<String, CachedChildData> cache = new ConcurrentHashMap<>();
     private final AtomicReference<List<ChildData>> promotedData = new AtomicReference<>();
     private final IExpireStrategy expireStrategy;
-    private final ScheduledExecutorService monitorExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService monitorExecutor = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("l2-state-cache-%d").build());
     private volatile ScheduledFuture<?> monitorFuture;
     private final StarterStopper starterStopper = new StarterStopper();
 
