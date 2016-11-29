@@ -98,7 +98,7 @@
   </build>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <curator.version>2.9.0</curator.version>
+    <curator.version>2.11.1</curator.version>
   </properties>
 
   <dependencies>
