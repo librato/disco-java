@@ -17,9 +17,7 @@ public class BackoffSelectorStrategyTest extends TestCase {
         ChildData childC = mock(ChildData.class);
         List<ChildData> children = Lists.newArrayList(childA, childC);
 
-        // We specify round robin here because it's easier to reason about in tests
-        SelectorStrategy base = new RoundRobinSelectorStrategy();
-        SelectorStrategy backoff = new BackoffSelectorStrategy(base, 10000, 10);
+        SelectorStrategy backoff = new BackoffSelectorStrategy(10000, 10);
 
         Stat oldStat = mock(Stat.class);
         when(oldStat.getCtime()).thenReturn(System.currentTimeMillis() - 10001);
@@ -44,7 +42,13 @@ public class BackoffSelectorStrategyTest extends TestCase {
             }
         }
 
-        long pct = Math.round(((newerChosen / total.doubleValue()) * 100));
-        assertEquals(10, pct);
+        /*
+        given the backing round-robin strategy, childC should be chosen 50%
+        of all invocations but should only be returned in approximately 10%
+        of those cases. Expected percentage is 5, but given the use of random
+        numbers, assert less than 6.
+        */
+        double pct = (newerChosen / total.doubleValue());
+        assertTrue(pct < .06);
     }
 }
