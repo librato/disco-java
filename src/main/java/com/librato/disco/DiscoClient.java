@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Keeps track of a set of services registered under a specific Zookeeper node
@@ -69,33 +70,20 @@ public class DiscoClient<T> {
     }
 
     public List<Node<T>> getAllNodes() {
-        List<ChildData> data = cache.getCurrentData();
-        if (data.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Node<T>> nodes = new ArrayList<>(data.size());
-        for (ChildData child : data) {
-            nodes.add(toNode(child));
-        }
-        return nodes;
+        return cache.getCurrentData().stream().map(this::toNode).collect(Collectors.toList());
+    }
+
+    public List<ChildData> getCurrentData() {
+        return cache.getCurrentData();
     }
 
     public Optional<Node<T>> getServiceNode() {
-        return nextChildData().transform(new Function<ChildData, Node<T>>() {
-            public Node<T> apply(ChildData input) {
-                return toNode(input);
-            }
-        });
+        return nextChildData().transform(this::toNode);
     }
 
     Node<T> toNode(final ChildData data) {
         try {
-            return deserializedNodeCache.get(data, new Callable<Node<T>>() {
-                @Override
-                public Node<T> call() throws Exception {
-                    return _toNode(data);
-                }
-            });
+            return deserializedNodeCache.get(data, () -> _toNode(data));
         } catch (ExecutionException e) {
             throw Throwables.propagate(e);
         }
