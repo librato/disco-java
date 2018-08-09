@@ -100,26 +100,26 @@
   </build>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <curator.version>2.12.0</curator.version>
+    <curator.version>4.0.1</curator.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.7</version>
+      <version>1.7.6</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>18.0</version>
+      <version>20.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
-      <version>3.4.8</version>
+      <version>3.4.13</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -138,6 +138,10 @@
           <groupId>org.slf4j</groupId>
           <artifactId>slf4j-log4j12</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -145,6 +149,12 @@
       <artifactId>curator-client</artifactId>
       <version>${curator.version}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.zookeeper</groupId>
+          <artifactId>zookeeper</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.curator</groupId>
